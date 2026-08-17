@@ -26,7 +26,7 @@
 <body>
 <h1>🚽 Outhouse Pooping Simulator — gauntlet loop</h1>
 <p class="bar"><strong>Bar:</strong> Match the visual craft of bruno-simon.com's live Three.js scene (lighting, materials, composition — progress/bar/bruno-simon.png) AND the absurd-comedy feel of Goat Simulator 3 (progress/bar/goatsim1.jpg), judged by a cold critic via blind A/B plus the numeric gates below.</p>
-<p class="stat">Round <b>1</b> · pieces <b>2/5</b> won</p>
+<p class="stat">Round <b>2</b> · pieces <b>3/5</b> won</p>
 
 <h2>Quality bar (references)</h2>
 <div class="barmeds"><img loading="lazy" src="bar/bruno-simon.png" alt="bar: bruno-simon.png"/>
@@ -44,19 +44,19 @@
       <td><strong>scene-visuals</strong></td>
       <td><span class="badge gap">gap</span></td>
       <td class="gate">cold-critic blind A/B vs bar images: craft score &gt;= 7/10</td>
-      <td class="gap">Flat lighting/shading: single hard directional light, hard blob shadows, no soft-shadow/AO/bloom; materials read flat/prototype vs bruno-simon's warm-cool lit, bloom-lit diorama</td>
+      <td class="gap">Bright washed-out open field vs the bar's dense dark diorama: meanLum 180 vs 56, structureRatio 15.8% vs 99%, sky 22.7% + flat ground 61.5%; frame needs packed saturated structure / a darker graded palette</td>
     </tr>
     <tr>
       <td><strong>hud-legibility</strong></td>
-      <td><span class="badge gap">gap</span></td>
+      <td><span class="badge win">win</span></td>
       <td class="gate">0 clipped HUD elements in capture; score/combo/gauge/equip all fully in-frame</td>
-      <td class="gap">GLOW/ARM gauge labels clipped at left edge in round1 capture (CSS fix landed, re-verify next round)</td>
+      <td class="gap">—</td>
     </tr>
     <tr>
       <td><strong>juice-fx</strong></td>
       <td><span class="badge gap">gap</span></td>
       <td class="gate">fxParticles &gt;= 20 captured within 500ms of a bucket splat; toast non-empty after score; shake &gt;= 0.15 on hit</td>
-      <td class="gap">Splat particle burst count not yet captured during action; need a shot timed right after a hit</td>
+      <td class="gap">Particle burst captured at ~658ms after the splat toast — outside the 500ms window; needs a shot timed closer to the hit (sweeter capture, not more particles)</td>
     </tr>
     <tr>
       <td><strong>performance</strong></td>
@@ -68,6 +68,14 @@
 <h2>Round history</h2>
 <table><tr><th>round</th><th>piece</th><th>verdict</th><th>before</th><th>after</th><th>note</th></tr>
     <tr>
+      <td class="num">2</td>
+      <td>core-loop</td>
+      <td><span class="badge win">win</span></td>
+      <td class="num">—</td>
+      <td class="num">—</td>
+      <td class="gap">Closed the regressed core-loop win: uncommitted bloom/lighting work dropped SwiftShader to ~9fps; the 50ms dt cap ran the whole sim (incl. the strain gauge) in slow-motion and key-up released from the last physics step up to a full frame late, so real-time releases hit strain 0.17-0.44 vs sweet 0.30 and landed ~1.3m short (0/10). Fixed with a 120Hz fixed-timestep accumulator, strain computed from the DOM key-event timestamp (frame-rate independent, HUD and physics now agree exactly), a flatter launch curve 3.5+9s -&gt; 5.31+1.8s so the HUD's +-0.11 sweet band is the band that actually lands (perfect zone still tight at +-0.06), and quarter-res bloom. Sweet 10/10 all PERFECT (score 13250), hud-legibility also cleared 3 -&gt; 0 clips, performance gate held (1.21ms). scene-visuals re-scored 4/10 by a pixel-measured cold critic (vision critic timed out); its named gap is now the next target: bright washed-out field vs the bar's dense dark diorama (meanLum 180 vs 56, structureRatio 16% vs 99%).</td>
+    </tr>
+    <tr>
       <td class="num">1</td>
       <td>scaffold+baseline</td>
       <td><span class="badge gap">gap</span></td>
@@ -77,5 +85,6 @@
     </tr></table>
 
 <h2>Round artifacts</h2>
-<div class="shots"><a href="artifacts/round1.png"><img loading="lazy" src="artifacts/round1.png" alt="round1.png"/></a></div>
+<div class="shots"><a href="artifacts/round1.png"><img loading="lazy" src="artifacts/round1.png" alt="round1.png"/></a>
+<a href="artifacts/round2.png"><img loading="lazy" src="artifacts/round2.png" alt="round2.png"/></a></div>
 </body></html>

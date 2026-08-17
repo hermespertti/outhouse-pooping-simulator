@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import {
   GameSnapshot, Poop, THRONES, BUCKETS, COMBO_WINDOW, BUCKET_CAPACITY,
   DEFAULT_AIM, DEFAULT_LOFT,
@@ -64,6 +68,7 @@ class Game {
   frameMsSamples: number[] = [];
   private camBase = new THREE.Vector3(2.6, 3.4, 4.4);
   private camTarget = new THREE.Vector3(0, 0.9, -3.6);
+  composer: EffectComposer | null = null;
   private time = 0;
   private toastT = 0;
   private unlockT = 0;
@@ -74,6 +79,7 @@ class Game {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.08;
     this.camera = new THREE.PerspectiveCamera(50, 1, 0.1, 120);
     this.sfx = makeSfx();
     this.fx = makeFx(this.scene);
@@ -81,7 +87,7 @@ class Game {
     window.addEventListener('resize', () => this.resize());
     window.addEventListener('keydown', (e) => this.onKey(e, true));
     window.addEventListener('keyup', (e) => this.onKey(e, false));
-    this.buildWorld();
+    this.buildWorld().then(() => this.setupPost()).catch((e) => console.error('buildWorld', e));
   }
 
   resize() {
@@ -89,21 +95,70 @@ class Game {
     this.renderer.setSize(w, h);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    if (this.composer) this.composer.setSize(w, h);
+  }
+
+  // bloom + output pass, set up once the scene exists (in boot, after buildWorld)
+  setupPost() {
+    const w = window.innerWidth, h = window.innerHeight;
+    const composer = new EffectComposer(this.renderer);
+    composer.addPass(new RenderPass(this.scene, this.camera));
+    // subtle bloom: catches the bright sun/sweat/strains, gives the frame lift.
+    // Rendered at quarter res — it's a wide soft glow anyway, and full-res
+    // software rendering (~100ms/frame) stalled DOM key-event delivery by a
+    // frame, making the strain gauge feel laggy (round-2 fix).
+    const bloom = new UnrealBloomPass(new THREE.Vector2(w / 4, h / 4), 0.3, 0.5, 0.6);
+    composer.addPass(bloom);
+    composer.addPass(new OutputPass());
+    this.composer = composer;
+  }
+
+  // warm/cool gradient sky dome (shader) — the single biggest craft lever
+  private makeSky() {
+    const geo = new THREE.SphereGeometry(80, 32, 16);
+    const mat = new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      depthWrite: false,
+      uniforms: {
+        top: { value: new THREE.Color(0x2a5db8) },
+        mid: { value: new THREE.Color(0x9fd4ff) },
+        bottom: { value: new THREE.Color(0xf6d9a8) },
+      },
+      vertexShader: `varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+      fragmentShader: `
+        varying vec3 vP;
+        uniform vec3 top; uniform vec3 mid; uniform vec3 bottom;
+        void main(){
+          float h = normalize(vP).y;
+          vec3 c = mix(mid, top, smoothstep(0.0, 0.4, h));
+          c = mix(bottom, c, smoothstep(-0.2, 0.02, h));
+          gl_FragColor = vec4(c, 1.0);
+        }`,
+    });
+    return new THREE.Mesh(geo, mat);
   }
 
   async buildWorld() {
-    this.scene.background = new THREE.Color(0x9fd4ff);
-    this.scene.fog = new THREE.Fog(0x9fd4ff, 26, 60);
+    const sky = this.makeSky();
+    this.scene.add(sky);
+    this.scene.fog = new THREE.Fog(0xcfe6ff, 30, 70);
 
-    const sun = new THREE.DirectionalLight(0xfff3d6, 2.6);
+    // warm key sun with soft shadows
+    const sun = new THREE.DirectionalLight(0xffe0a8, 3.0);
     sun.position.set(9, 14, 6);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     sun.shadow.camera.left = -14; sun.shadow.camera.right = 14;
     sun.shadow.camera.top = 14; sun.shadow.camera.bottom = -14;
-    sun.shadow.bias = -0.0004;
+    sun.shadow.bias = -0.0003;
+    sun.shadow.radius = 4;
     this.scene.add(sun);
-    this.scene.add(new THREE.HemisphereLight(0xbfe3ff, 0x4a7a3a, 0.85));
+    // cool fill from the opposite side for warm/cool contrast
+    const fill = new THREE.DirectionalLight(0x9fc4ff, 1.35);
+    fill.position.set(-8, 6, -4);
+    this.scene.add(fill);
+    // sky/ground ambient for readable shadows
+    this.scene.add(new THREE.HemisphereLight(0xbfe3ff, 0x4a7a3a, 0.95));
 
     // ground: grass disc with painted splotch texture
     const gc = document.createElement('canvas');
@@ -258,13 +313,14 @@ class Game {
   }
 
   // ---- input ----
+  strainStartStamp = 0; // DOMHighResTimeStamp of the key-down event that started straining
   onKey(e: KeyboardEvent, down: boolean) {
     if (down) this.sfx.unlock();
     const k = e.key;
     if (down && (k === ' ' || k === 'ArrowUp' || k === 'ArrowDown' || k === 'ArrowLeft' || k === 'ArrowRight')) e.preventDefault();
     if (k === ' ') {
-      if (down && this.phase === 'ready') this.startStrain();
-      if (!down && this.phase === 'straining') this.release();
+      if (down && this.phase === 'ready') this.startStrain(e.timeStamp);
+      if (!down && this.phase === 'straining') this.release(e.timeStamp);
     }
     this.applyHold(k, down);
     if (down) {
@@ -303,13 +359,24 @@ class Game {
   }
 
   // ---- core loop ----
-  startStrain() {
+  // Strain is a pure function of time (real-time gauge: fills in wall-clock,
+  // so HUD and physics agree exactly at any frame rate). Round-2 fix: the old
+  // variable-dt sim ran in slow-motion at ~10fps, and reading strain from the
+  // last physics step added up-to-a-frame of latency — both let real-time
+  // releases miss the visible sweet spot.
+  strainAt(stamp: number): number {
+    return Math.min(1, (stamp - this.strainStartStamp) / 1000 / 1.15);
+  }
+  startStrain(stamp: number) {
     this.phase = 'straining';
+    this.strainStartStamp = stamp; // DOMHighResTimeStamp of the key-down event
     this.strain = 0;
     this.sfx.strainStart();
   }
-  release() {
+  release(stamp: number) {
     this.phase = 'settling';
+    // exact strain at the key-up event's timestamp (sub-frame precision)
+    this.strain = this.strainAt(stamp);
     const v = this.launchSpeed();
     const dir = this.launchDir();
     const origin = this.seatPos();
@@ -337,9 +404,15 @@ class Game {
   }
   relief = 0;
 
-  launchSpeed() { return 3.5 + this.strain * 9.0; }
+  // Round-2 retune: flatter speed curve. The HUD sweet band is ±0.11 strain;
+  // the old 9 m/strain slope meant only ±0.07 of that band actually landed in
+  // the bucket (the gauge overpromised and every slightly-early release sailed
+  // short). At ~1.8 m/strain, anywhere inside ±0.16 of sweet lands in the
+  // bucket, and the perfect zone (d < rad*0.4) is a tight ±0.06 — precision
+  // still wins points, but the band the gauge shows is the band that works.
+  launchSpeed() { return 5.31 + this.strain * 1.8; }
 
-  launchSpeedFor(s: number) { return 3.5 + s * 9.0; }
+  launchSpeedFor(s: number) { return 5.31 + s * 1.8; }
   // Exact strain that crosses the bucket rim height directly over the bucket center,
   // given the current aim/loft. Signed forward distance at the rim crossing is
   // monotone in strain, so bisection converges cleanly.
@@ -390,7 +463,8 @@ class Game {
     if (this.holdAim.d) this.loft = THREE.MathUtils.clamp(this.loft - sp, 25, 70);
 
     if (this.phase === 'straining') {
-      this.strain = Math.min(1, this.strain + dt / 1.15);
+      // gauge value = wall-clock elapsed since the key-down event (see strainAt)
+      this.strain = this.strainAt(performance.now());
       // strain wobble + redness
       const c = this.characterSkin;
       if (c) {
@@ -663,7 +737,8 @@ class Game {
   }
 
   screenshot(): string {
-    this.renderer.render(this.scene, this.camera);
+    if (this.composer) this.composer.render();
+    else this.renderer.render(this.scene, this.camera);
     return this.renderer.domElement.toDataURL('image/png');
   }
 }
@@ -671,15 +746,22 @@ class Game {
 export function boot(canvas: HTMLCanvasElement) {
   const game = new Game(canvas);
   let last = performance.now();
+  // Fixed-timestep simulation: game-time always tracks wall-clock regardless of
+  // render fps (round-2 fix — at ~10fps the capped variable dt ran the whole
+  // game in slow-motion, so a real-time release missed the visible gauge).
+  const STEP = 1 / 120;
+  let pending = 0;
   const acc = { n: 0, t: 0 };
   function loop() {
     const now = performance.now();
     let dt = (now - last) / 1000;
     last = now;
-    dt = Math.min(dt, 0.05);
+    dt = Math.min(dt, 0.25); // cap catch-up after tab switches; still real-time
     const t0 = performance.now();
-    game.update(dt);
-    game.renderer.render(game.scene, game.camera);
+    pending += dt;
+    while (pending >= STEP) { game.update(STEP); pending -= STEP; }
+    if (game.composer) game.composer.render();
+    else game.renderer.render(game.scene, game.camera);
     const ms = performance.now() - t0;
     game.frameMs = ms;
     acc.n++; acc.t += ms;
