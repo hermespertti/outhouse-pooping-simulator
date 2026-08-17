@@ -1,0 +1,81 @@
+<!doctype html>
+<html><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Outhouse Pooping Simulator — Gauntlet Progress</title>
+<style>
+ body{margin:0;background:#0d0f14;color:#e8e6df;font:15px/1.5 system-ui,sans-serif;padding:24px;max-width:1080px;margin:0 auto}
+ h1{font-size:22px;margin:0 0 4px}
+ .bar{color:#9aa3b2;font-size:13px;margin-bottom:20px}
+ h2{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:#8b93a3;margin:28px 0 10px}
+ table{width:100%;border-collapse:collapse;font-size:13px}
+ td,th{border-bottom:1px solid #232833;padding:7px 10px;text-align:left;vertical-align:top}
+ th{color:#8b93a3;font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.06em}
+ .num{font-variant-numeric:tabular-nums;white-space:nowrap}
+ .gate{color:#b9c2d0}
+ .gap{color:#d9b8a0;max-width:340px}
+ .badge{display:inline-block;padding:1px 9px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+ .badge.win{background:#1d3a26;color:#7fe3a1}
+ .badge.gap{background:#3a2d1d;color:#e3c67f}
+ .badge.stalled{background:#3a1d24;color:#e37f9d}
+ .shots img{width:230px;border-radius:8px;margin:6px 8px 6px 0;border:1px solid #232833;display:block}
+ .shots a{display:inline-block;margin:0 8px 12px 0}
+ .barmeds img{max-width:420px;border-radius:8px;margin:6px 8px 6px 0;border:1px solid #232833}
+ .stat{font-size:13px;color:#9aa3b2;margin:6px 0 0}
+ .stat b{color:#e8e6df}
+</style></head>
+<body>
+<h1>🚽 Outhouse Pooping Simulator — gauntlet loop</h1>
+<p class="bar"><strong>Bar:</strong> Match the visual craft of bruno-simon.com's live Three.js scene (lighting, materials, composition — progress/bar/bruno-simon.png) AND the absurd-comedy feel of Goat Simulator 3 (progress/bar/goatsim1.jpg), judged by a cold critic via blind A/B plus the numeric gates below.</p>
+<p class="stat">Round <b>1</b> · pieces <b>2/5</b> won</p>
+
+<h2>Quality bar (references)</h2>
+<div class="barmeds"><img loading="lazy" src="bar/bruno-simon.png" alt="bar: bruno-simon.png"/>
+<img loading="lazy" src="bar/goatsim1.jpg" alt="bar: goatsim1.jpg"/></div>
+
+<h2>Pieces (current state)</h2>
+<table><tr><th>piece</th><th>verdict</th><th>gate</th><th>current gap</th></tr>
+    <tr>
+      <td><strong>core-loop</strong></td>
+      <td><span class="badge win">win</span></td>
+      <td class="gate">sweet-shot bucket hit rate &gt;= 90% over 10 launches; sweetStrain solver converges (|signed distance at rim| &lt; 0.1m)</td>
+      <td class="gap">—</td>
+    </tr>
+    <tr>
+      <td><strong>scene-visuals</strong></td>
+      <td><span class="badge gap">gap</span></td>
+      <td class="gate">cold-critic blind A/B vs bar images: craft score &gt;= 7/10</td>
+      <td class="gap">Flat lighting/shading: single hard directional light, hard blob shadows, no soft-shadow/AO/bloom; materials read flat/prototype vs bruno-simon's warm-cool lit, bloom-lit diorama</td>
+    </tr>
+    <tr>
+      <td><strong>hud-legibility</strong></td>
+      <td><span class="badge gap">gap</span></td>
+      <td class="gate">0 clipped HUD elements in capture; score/combo/gauge/equip all fully in-frame</td>
+      <td class="gap">GLOW/ARM gauge labels clipped at left edge in round1 capture (CSS fix landed, re-verify next round)</td>
+    </tr>
+    <tr>
+      <td><strong>juice-fx</strong></td>
+      <td><span class="badge gap">gap</span></td>
+      <td class="gate">fxParticles &gt;= 20 captured within 500ms of a bucket splat; toast non-empty after score; shake &gt;= 0.15 on hit</td>
+      <td class="gap">Splat particle burst count not yet captured during action; need a shot timed right after a hit</td>
+    </tr>
+    <tr>
+      <td><strong>performance</strong></td>
+      <td><span class="badge win">win</span></td>
+      <td class="gate">mean frameMs &lt;= 16.7 over 30 frames</td>
+      <td class="gap">—</td>
+    </tr></table>
+
+<h2>Round history</h2>
+<table><tr><th>round</th><th>piece</th><th>verdict</th><th>before</th><th>after</th><th>note</th></tr>
+    <tr>
+      <td class="num">1</td>
+      <td>scaffold+baseline</td>
+      <td><span class="badge gap">gap</span></td>
+      <td class="num">—</td>
+      <td class="num">—</td>
+      <td class="gap">Round 1 = baseline capture. Blender models (11 GLB) + Three.js game + gauntlet harness committed; core loop calibrated (sweetStrain solver, 10/10 hits); visuals 5/10 vs bar. Biggest gap: lighting/shading flatness.</td>
+    </tr></table>
+
+<h2>Round artifacts</h2>
+<div class="shots"><a href="artifacts/round1.png"><img loading="lazy" src="artifacts/round1.png" alt="round1.png"/></a></div>
+</body></html>

@@ -57,6 +57,10 @@ export interface GameSnapshot {
   frameMs: number;
   flyingPoops: number;
   groundPoops: number;
+  fxParticles: number;
+  lastToast: string;
+  lastToastAge: number;
+  sweetStrain: number;
 }
 
 export const THRONES = [

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 
 // Particle + effect juice module.
 export interface Fx {
+  count(): number;
   update(dt: number): void;
   burst(pos: THREE.Vector3, count: number, color: number, size: number, speed: number): void;
   stink(pos: THREE.Vector3): void;
@@ -40,6 +41,7 @@ export function makeFx(scene: THREE.Scene): Fx {
   }
 
   return {
+    count() { return pool.length; },
     burst(pos, count, color, size, speed) {
       for (let i = 0; i < count; i++) {
         const v = new THREE.Vector3(

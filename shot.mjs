@@ -37,10 +37,20 @@ const dump = () => page.evaluate(() => {
 
 const keyDown = (k) => page.keyboard.down(k);
 const keyUp = (k) => page.keyboard.up(k);
-// hold space (straining), then release — the core move
-async function strainRelease(holdMs) {
+// hold space (straining), then release — the core move.
+// When `atSweet` is true, release the instant strain crosses the sweet spot
+// (the gauge is oscillating, so we wait for an upward crossing).
+async function strainRelease(holdMs, atSweet) {
+  const sweet = await page.evaluate(() => (window.__game ? window.__game.sweetStrain() : 0.5));
   await keyDown(' ');
-  await sleep(holdMs);
+  const start = Date.now();
+  let crossed = !atSweet && holdMs > 0;
+  while (Date.now() - start < (holdMs || 4000)) {
+    const strain = await page.evaluate(() => (window.__game ? window.__game.snapshot().strain : 0));
+    if (atSweet && strain >= sweet) { crossed = true; break; }
+    if (!atSweet && Date.now() - start >= holdMs) { crossed = true; break; }
+    await sleep(40);
+  }
   await keyUp(' ');
   await sleep(1600); // let the poop fly + resolve
 }
@@ -50,25 +60,21 @@ switch (SCRIPT) {
     await sleep(600);
     break;
   case 'play': {
-    // a representative round: several launches at varied strain, some on-target
+    // a representative round: aim at the bucket, release near the sweet spot
+    // (a skilled player); a couple of deliberately-looser shots for variety
     for (let i = 0; i < 6; i++) {
-      // nudge aim randomly to simulate play
-      await page.keyboard.press(i % 2 ? 'ArrowLeft' : 'ArrowRight');
-      await sleep(120);
-      await page.keyboard.press(i % 2 ? 'ArrowRight' : 'ArrowLeft');
-      await strainRelease(500 + Math.random() * 900);
+      const tight = i % 3 !== 2;
+      await strainRelease(tight ? 4000 : 500 + Math.random() * 600, tight);
     }
     break;
   }
   case 'sweet': {
     // land as many as possible near the sweet spot for bucket-hit metrics
     for (let i = 0; i < 10; i++) {
-      const s = await dump();
-      // hold duration that reaches ~sweet strain (strain rate = 1/1.15 per s)
-      // read the gauge band bottom % as the sweet strain
-      const band = s.gaugeBand ? parseFloat(s.gaugeBand) / 100 : 0.5;
+      const sweet = await page.evaluate(() => (window.__game ? window.__game.sweetStrain() : 0.5));
       await keyDown(' ');
-      await sleep(Math.max(150, band * 1150));
+      // strain fills at 1/1.15 per second -> hold time = sweet * 1150 ms
+      await sleep(Math.max(150, sweet * 1150));
       await keyUp(' ');
       await sleep(1700);
     }
@@ -79,8 +85,10 @@ switch (SCRIPT) {
 }
 
 const state = await dump();
-const shot = await page.evaluate(() => (window.__game ? window.__game.screenshot() : null));
-if (shot) fs.writeFileSync(OUT, Buffer.from(shot.split(',')[1], 'base64'));
+// Capture the FULL player view: DOM HUD + WebGL canvas composited (what the eye sees).
+// page.screenshot() grabs the viewport including the overlay, unlike the canvas buffer.
+await page.screenshot({ path: OUT, type: 'png' });
+state.captured = 'page-dom';
 
 console.log('STATE ' + JSON.stringify(state));
 console.log('SHOT_SAVED ' + OUT);

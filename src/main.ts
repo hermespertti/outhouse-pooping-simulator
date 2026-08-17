@@ -62,8 +62,8 @@ class Game {
   fps = 60;
   frameMs = 0;
   frameMsSamples: number[] = [];
-  private camBase = new THREE.Vector3(0, 5.2, 7.6);
-  private camTarget = new THREE.Vector3(0, 1.1, -3.2);
+  private camBase = new THREE.Vector3(2.6, 3.4, 4.4);
+  private camTarget = new THREE.Vector3(0, 0.9, -3.6);
   private time = 0;
   private toastT = 0;
   private unlockT = 0;
@@ -136,9 +136,9 @@ class Game {
     // outhouse
     const outhouse = await loadGLB(this.loader, 'outhouse.glb');
     outhouse.traverse((o) => { if (o instanceof THREE.Mesh) { o.castShadow = true; o.receiveShadow = true; } });
-    outhouse.position.set(0, 0, -6.2);
-    outhouse.rotation.y = Math.PI; // door side (+model Y -> world +Z) faces camera & bucket
-    this.outhouse.add(outhouse);
+    this.outhouse.position.set(0, 0, -6.2);
+    this.outhouse.rotation.y = Math.PI; // door side (model +Y) faces camera & bucket
+    this.outhouse.add(outhouse); // glb child stays at local origin
     this.scene.add(this.outhouse);
     this.throneAnchor.position.set(0, 0.1, -0.55); // seat area inside, on the floor
     this.outhouse.add(this.throneAnchor);
@@ -153,16 +153,16 @@ class Game {
         if (c && c.r > 0.9 && c.g > 0.7 && c.b > 0.55) this.characterSkin = m;
       }
     });
-    char.position.set(1.45, 0, -5.0);
-    char.rotation.y = Math.PI; // faces camera, standing by the throne
+    char.position.set(0.95, 0, -5.6); // world coords: beside the throne (throne sits at world ~z -5.65)
+    char.rotation.y = Math.PI; // model faces -Z in glTF -> PI turns it toward the camera (+Z)
     this.character.add(char);
     this.scene.add(this.character);
 
     // bucket
     const bucket = await loadGLB(this.loader, 'bucket.glb');
     bucket.traverse((o) => { if (o instanceof THREE.Mesh) { o.castShadow = true; this.bucketSkin = this.bucketSkin || (o.material as THREE.MeshStandardMaterial); } });
-    this.bucket = bucket;
-    bucket.position.set(0, 0, -1.6);
+    this.bucketAnchor.position.set(0, 0, -1.6);
+    this.bucket = bucket; // glb child at local origin
     this.bucketAnchor.add(bucket);
     this.scene.add(this.bucketAnchor);
 
@@ -217,6 +217,7 @@ class Game {
     const g = await loadGLB(this.loader, map[id] || 'throne_gold.glb');
     g.traverse((o) => { if (o instanceof THREE.Mesh) o.castShadow = true; });
     g.scale.setScalar(0.42);
+    // parent outhouse rotation (PI) already turns the model's opening (-Z) toward the bucket
     if (this.throne) this.throneAnchor.remove(this.throne);
     this.throne = g;
     this.throneAnchor.add(g);
@@ -241,7 +242,7 @@ class Game {
   }
 
   seatPos(): THREE.Vector3 {
-    const v = new THREE.Vector3(0, 0.95, -0.55); // just above the throne seat
+    const v = new THREE.Vector3(0, 0.78, -0.6); // throne seat: above the bucket rim so the arc crosses it
     this.outhouse.localToWorld(v);
     return v;
   }
@@ -348,24 +349,31 @@ class Game {
     const toB = b.clone().sub(o);
     const fwd = new THREE.Vector3(toB.x, 0, toB.z).normalize();
     const rimH = this.bucketRimZ();
+    // Signed forward distance from the bucket at the moment the descending
+    // trajectory crosses rim height. >0 = landed past the bucket, <0 = short.
     const signedAtRim = (s: number): number => {
       let p = o.clone();
       const vel = this.launchDir().clone().multiplyScalar(this.launchSpeedFor(s));
       const dt = 0.016;
       let prevY = p.y;
-      for (let i = 0; i < 500; i++) {
+      for (let i = 0; i < 600; i++) {
         vel.y -= GRAV * dt;
         p.addScaledVector(vel, dt);
-        if (vel.y < 0 && prevY >= rimH && p.y < rimH) return p.clone().sub(b).dot(fwd);
+        if (vel.y < 0 && prevY >= rimH && p.y < rimH) {
+          // only count the crossing if we're in the bucket's neighbourhood
+          const lateral = Math.abs(p.clone().sub(b).cross(fwd).length());
+          if (lateral > 2) return 99; // way off-axis: treat as past
+          return p.clone().sub(b).dot(fwd);
+        }
         prevY = p.y;
-        if (p.y <= 0) return -100; // hit the ground short of the rim
+        if (p.y <= 0) return -100; // died on the ground before reaching rim height
       }
-      return 100; // sailed over
+      return 100;
     };
-    if (signedAtRim(0) > 0) return 0.03;
-    if (signedAtRim(1) < 0) return 0.97;
-    let lo = 0, hi = 1;
-    for (let i = 0; i < 18; i++) {
+    if (signedAtRim(0.02) > 0) return 0.02;
+    if (signedAtRim(1) < 0) return 0.98;
+    let lo = 0.02, hi = 1;
+    for (let i = 0; i < 20; i++) {
       const mid = (lo + hi) / 2;
       if (signedAtRim(mid) < 0) lo = mid; else hi = mid;
     }
@@ -571,8 +579,11 @@ class Game {
     if (hint) hint.style.opacity = this.poopsLaunched === 0 ? '1' : '0.45';
   }
 
-  toastT2 = 0;
+  lastToast = '';
+  lastToastAt = 0;
   announce(text: string, color = '#fff') {
+    this.lastToast = text;
+    this.lastToastAt = this.time;
     const el = document.getElementById('toast');
     if (!el) return;
     el.textContent = text;
@@ -616,7 +627,39 @@ class Game {
       frameMs: this.frameMs,
       flyingPoops: this.poops.filter((p) => p.state === 'flying').length,
       groundPoops: this.poops.filter((p) => p.state === 'dead').length,
+      fxParticles: this.fx.count(),
+      lastToast: this.lastToast,
+      lastToastAge: this.time - this.lastToastAt,
+      sweetStrain: this.sweetStrain(),
     };
+  }
+
+  // debug: return signed distance at rim crossing for a set of strains (diagnostics)
+  dbgTraj(): number[] {
+    const out: number[] = [];
+    for (const s of [0.1, 0.3, 0.5, 0.7, 1.0]) {
+      const b = this.bucketPos();
+      const o = this.seatPos();
+      const toB = b.clone().sub(o);
+      const fwd = new THREE.Vector3(toB.x, 0, toB.z).normalize();
+      const rimH = this.bucketRimZ();
+      let p = o.clone();
+      const vel = this.launchDir().clone().multiplyScalar(this.launchSpeedFor(s));
+      const dt = 0.016;
+      let prevY = p.y, sig = 999;
+      for (let i = 0; i < 600; i++) {
+        vel.y -= GRAV * dt;
+        p.addScaledVector(vel, dt);
+        if (vel.y < 0 && prevY >= rimH && p.y < rimH) {
+          sig = p.clone().sub(b).dot(fwd);
+          break;
+        }
+        prevY = p.y;
+        if (p.y <= 0) { sig = -999; break; }
+      }
+      out.push(Number(sig.toFixed(2)));
+    }
+    return out;
   }
 
   screenshot(): string {
@@ -647,3 +690,9 @@ export function boot(canvas: HTMLCanvasElement) {
   (window as any).__game = game;
   return game;
 }
+
+export default boot;
+
+// entry
+const canvas = document.getElementById('app') as HTMLCanvasElement;
+boot(canvas);

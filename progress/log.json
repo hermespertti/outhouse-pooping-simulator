@@ -1,0 +1,55 @@
+{
+  "rounds": 1,
+  "bar": "Match the visual craft of bruno-simon.com's live Three.js scene (lighting, materials, composition — progress/bar/bruno-simon.png) AND the absurd-comedy feel of Goat Simulator 3 (progress/bar/goatsim1.jpg), judged by a cold critic via blind A/B plus the numeric gates below.",
+  "pieces": [
+    {
+      "name": "core-loop",
+      "round": 1,
+      "verdict": "win",
+      "gate": "sweet-shot bucket hit rate >= 90% over 10 launches; sweetStrain solver converges (|signed distance at rim| < 0.1m)",
+      "metrics": { "hits": "10/10", "perfects": 6, "comboMax": 10, "score": 12500, "sweetStrain": 0.301 },
+      "gap": ""
+    },
+    {
+      "name": "scene-visuals",
+      "round": 1,
+      "verdict": "gap",
+      "gate": "cold-critic blind A/B vs bar images: craft score >= 7/10",
+      "metrics": { "criticScore": 5 },
+      "gap": "Flat lighting/shading: single hard directional light, hard blob shadows, no soft-shadow/AO/bloom; materials read flat/prototype vs bruno-simon's warm-cool lit, bloom-lit diorama"
+    },
+    {
+      "name": "hud-legibility",
+      "round": 1,
+      "verdict": "gap",
+      "gate": "0 clipped HUD elements in capture; score/combo/gauge/equip all fully in-frame",
+      "metrics": { "clippedLabels": 3 },
+      "gap": "GLOW/ARM gauge labels clipped at left edge in round1 capture (CSS fix landed, re-verify next round)"
+    },
+    {
+      "name": "juice-fx",
+      "round": 1,
+      "verdict": "gap",
+      "gate": "fxParticles >= 20 captured within 500ms of a bucket splat; toast non-empty after score; shake >= 0.15 on hit",
+      "metrics": { "fxParticlesAtRest": 0, "toastWorking": true, "shakeMeasured": 0.15 },
+      "gap": "Splat particle burst count not yet captured during action; need a shot timed right after a hit"
+    },
+    {
+      "name": "performance",
+      "round": 1,
+      "verdict": "win",
+      "gate": "mean frameMs <= 16.7 over 30 frames",
+      "metrics": { "frameMs": 0.7, "fps": 25 },
+      "gap": ""
+    }
+  ],
+  "history": [
+    {
+      "round": 1,
+      "piece": "scaffold+baseline",
+      "verdict": "gap",
+      "metrics": { "criticScore": [null, 5], "hits": [0, "10/10"], "frameMs": [null, 0.7] },
+      "note": "Round 1 = baseline capture. Blender models (11 GLB) + Three.js game + gauntlet harness committed; core loop calibrated (sweetStrain solver, 10/10 hits); visuals 5/10 vs bar. Biggest gap: lighting/shading flatness."
+    }
+  ]
+}
