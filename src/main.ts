@@ -12,7 +12,7 @@ import {
 import { makeSfx, Sfx } from './sfx';
 import { makeFx, Fx } from './fx';
 
-const ASSET = '/assets/';
+const ASSET = './assets/';
 // Round 5: GRAV 9.8 -> 4.3 (floaty, goofy arcs) + launch offset 5.31 -> 5.01
 // (see launchSpeed). The juice-fx gate had regressed to a coin flip: the
 // shot.mjs capture cut lands ~1.64-2.4s after the last key-up (1600ms

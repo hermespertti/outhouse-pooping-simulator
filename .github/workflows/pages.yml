@@ -25,6 +25,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      # Vite only copies public/ into dist; the GLB models live in the repo-root
+      # assets/ (gauntlet convention — see AGENTS.md). Ship them alongside the
+      # hashed JS bundle so Pages serves them at <site>/assets/*.glb.
+      - run: cp assets/*.glb dist/assets/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
