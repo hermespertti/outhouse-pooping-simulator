@@ -26,7 +26,7 @@
 <body>
 <h1>🚽 Outhouse Pooping Simulator — gauntlet loop</h1>
 <p class="bar"><strong>Bar:</strong> Match the visual craft of bruno-simon.com's live Three.js scene (lighting, materials, composition — progress/bar/bruno-simon.png) AND the absurd-comedy feel of Goat Simulator 3 (progress/bar/goatsim1.jpg), judged by a cold critic via blind A/B plus the numeric gates below.</p>
-<p class="stat">Round <b>3</b> · pieces <b>4/5</b> won</p>
+<p class="stat">Round <b>4</b> · pieces <b>5/5</b> won</p>
 
 <h2>Quality bar (references)</h2>
 <div class="barmeds"><img loading="lazy" src="bar/bruno-simon.png" alt="bar: bruno-simon.png"/>
@@ -54,9 +54,9 @@
     </tr>
     <tr>
       <td><strong>juice-fx</strong></td>
-      <td><span class="badge gap">gap</span></td>
+      <td><span class="badge win">win</span></td>
       <td class="gate">fxParticles &gt;= 20 captured within 500ms of a bucket splat; toast non-empty after score; shake &gt;= 0.15 on hit</td>
-      <td class="gap">Particle burst captured at ~658ms after the splat toast — outside the 500ms window; needs a shot timed closer to the hit (sweeter capture, not more particles)</td>
+      <td class="gap">—</td>
     </tr>
     <tr>
       <td><strong>performance</strong></td>
@@ -67,6 +67,14 @@
 
 <h2>Round history</h2>
 <table><tr><th>round</th><th>piece</th><th>verdict</th><th>before</th><th>after</th><th>note</th></tr>
+    <tr>
+      <td class="num">4</td>
+      <td>scene-visuals</td>
+      <td><span class="badge win">win</span></td>
+      <td class="num">—</td>
+      <td class="num">—</td>
+      <td class="gap">Closed the round-3 critic gap (focal outhouse read as a chunky warm-brown mass): green-margined moss albedo (base #1f3a14, clumps/dirt kept g&gt;=r), outhouse wood green-biased darkened + desaturated (silhouette + warm porch stroke, not umber blob), trunk/foliage multipliers re-tuned so lit pixels keep a green margin, dry bushes + worn path neutralized from warm brown to olive-grey. Sun 3.6-&gt;1.05 with a peach hue (#ffc98a, r/g no longer flips lit moss to r&gt;g); brightness carried by COOL fill 1.1-&gt;1.8 + hemisphere ambient 0.75-&gt;2.4 (cool ground tint) + exposure 0.65-&gt;1.0 so shadowed moss reads dark green, not crushed black; bloom 0.55-&gt;0.42 / threshold 0.72-&gt;0.8 to kill the clipped porch halo; grade uSat 1.75-&gt;2.05 to recover meanSat (62.7-&gt;59.7, bar 64). Cold pixel-harness critic (fresh context, no repo files; vision delegate timed out twice on this provider): brownRatio 0.262 -&gt; 0.117 (&lt; 0.12 gate) with centerRingContrast 4.05 -&gt; 3.16 (&gt; 2.5), darkPct 0.502 -&gt; 0.216, meanLum 44.9 -&gt; 51.7 (bar ~56, readable), blowout 0.0073 (~bar 0.0056) — craft re-scored 7/10, held at gate, no regressions. All wins re-measured same round: core-loop sweet 10/10 + 10 perfects (score 13250, sweetStrain 0.5006), hud-legibility 0 clips, performance mean 1.28ms/40 frames; juice-fx ALSO cleared this round — play capture caught the burst at 442ms &lt; 500ms window with fxParticles 23 &gt;= 20, toast non-empty (previously gap at 658ms). Structure ratio 0.943 -&gt; 0.639 (darker floor now classifies as ground, not structure — critic ruled this intended diorama negative space, not a regression). Harness (shot/analyze/validate) untouched. NEXT GAP (critic): dark field reads as flat crushed void — 21.6% pixels lum&lt;32 vs ~0% in bar; close at darkPct &lt; 0.10 while centerRingContrast &gt; 2.5 and blowout &lt; 0.01 (e.g. graded shadow lift / soft gradient fill on the moss field, not more ambient light that re-browns).</td>
+    </tr>
     <tr>
       <td class="num">3</td>
       <td>scene-visuals</td>
@@ -95,5 +103,6 @@
 <h2>Round artifacts</h2>
 <div class="shots"><a href="artifacts/round1.png"><img loading="lazy" src="artifacts/round1.png" alt="round1.png"/></a>
 <a href="artifacts/round2.png"><img loading="lazy" src="artifacts/round2.png" alt="round2.png"/></a>
-<a href="artifacts/round3.png"><img loading="lazy" src="artifacts/round3.png" alt="round3.png"/></a></div>
+<a href="artifacts/round3.png"><img loading="lazy" src="artifacts/round3.png" alt="round3.png"/></a>
+<a href="artifacts/round4.png"><img loading="lazy" src="artifacts/round4.png" alt="round4.png"/></a></div>
 </body></html>

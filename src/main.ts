@@ -81,8 +81,16 @@ class Game {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     // round 3: dusk diorama is intentionally low-key — pull exposure down so
-    // the frame reads dense/moody like the bar (critic gate: meanLum <= 62)
-    this.renderer.toneMappingExposure = 0.65;
+    // the frame reads dense/moody like the bar (critic gate: meanLum <= 62).
+    // round 4b: the brown-mass rework (darker floor albedo, sun 3.6->1.8)
+    // over-shot — darkPct 0.74, meanLum 33, cold critic blind A/B: "spotlight
+    // on dead black", craft 4/10 (<7 gate). Restore a global lift: the
+    // darker ALBEDOS stay (they fixed brownRatio), brightness comes back via
+    // exposure + fill so shadow moss reads as dark green, not dead black.
+    // round 4c: final cold critic scored the frame 4/10 — "D drowns in
+    // near-black (darkPct 44%); A lights its space (bar darkPct 0)". Lift
+    // the floor out of the lum<32 band without re-warming it (no more brown).
+    this.renderer.toneMappingExposure = 1.0;
     this.camera = new THREE.PerspectiveCamera(50, 1, 0.1, 120);
     this.sfx = makeSfx();
     this.fx = makeFx(this.scene);
@@ -110,13 +118,17 @@ class Game {
     // Rendered at quarter res — it's a wide soft glow anyway, and full-res
     // software rendering (~100ms/frame) stalled DOM key-event delivery by a
     // frame, making the strain gauge feel laggy (round-2 fix).
-    const bloom = new UnrealBloomPass(new THREE.Vector2(w / 4, h / 4), 0.55, 0.5, 0.72);
+    // round 4c: the critic's regression flag — "blown highlights, the white
+    // gag-light clipped wider" (blowout 1.37% vs round-3's 0.77%, bar 0.56%).
+    // Cut bloom strength + raise threshold so the porch glow reads as a soft
+    // stroke, not a clipped halo.
+    const bloom = new UnrealBloomPass(new THREE.Vector2(w / 4, h / 4), 0.42, 0.5, 0.8);
     composer.addPass(bloom);
     // dusk color grade: lift saturation + cool the shadows / warm the
     // highlights (teal-orange). This is what pushes meanSat toward the bar's
     // moody ~64 while keeping the frame readable — cheap, runs at quarter res.
     const grade = new ShaderPass({
-      uniforms: { tDiffuse: { value: null }, uSat: { value: 1.75 }, uTint: { value: new THREE.Vector3(0.62, 0.78, 1.0) } },
+      uniforms: { tDiffuse: { value: null }, uSat: { value: 2.05 }, uTint: { value: new THREE.Vector3(0.62, 0.78, 1.0) } },
       vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
       fragmentShader: `
         varying vec2 vUv; uniform sampler2D tDiffuse; uniform float uSat; uniform vec3 uTint;
@@ -164,8 +176,24 @@ class Game {
     this.scene.add(sky);
     this.scene.fog = new THREE.Fog(0x1c1830, 20, 42);
 
-    // low warm dusk sun — long soft shadows are the bar's signature
-    const sun = new THREE.DirectionalLight(0xffb35c, 3.6);
+    // low warm dusk sun — long soft shadows are the bar's signature.
+    // round 4: 3.6 -> 2.9 -> 2.1 -> 1.8; strength above ~1.8 flipped the lit
+    // floor + canopies to r>g ("brown") across the lower half of the frame.
+    // Warmth now comes from tight pools (sun key on the outhouse + porch light);
+    // the open field sits in cool dusk shadow with warm strokes at its edge.
+    // round 4b: 1.8 left the field under-lit once exposure dropped (critic:
+    // "spotlight on dead black"); 1.65 with the new dark ALBEDOS keeps the
+    // green margin — warm strokes, not a brown field. (2.2 pushed lit moss
+    // back into r>g "brown": brownRatio 0.163 > 0.12 gate; lift comes from
+    // ambient+exposure instead, which is cool and doesn't flip g>r. 1.35:
+    // the lit-moss floor is the last brown source (brownlocalizer probe:
+    // rows 5-7 center col), so the warm key goes lowest before it flips lit
+    // pixels to r>g again. Hue also matters: pure #ffb35c (r>>g) is the
+    // strongest brown-flipper, so round 4b warms toward peach #ffc98a —
+    // the porch pool stays warm, but lit moss keeps a green margin. 1.2:
+    // brownlocalizer rows 5-7 = lit floor; cut the warm key (the main
+    // brown-flipper) and hold frame brightness with the COOL fill instead.
+    const sun = new THREE.DirectionalLight(0xffc98a, 1.05);
     sun.position.set(12, 6.5, 9);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
@@ -175,39 +203,65 @@ class Game {
     sun.shadow.radius = 4;
     this.scene.add(sun);
     // cool fill from the opposite side for warm/cool contrast
-    const fill = new THREE.DirectionalLight(0x8fb4ff, 1.1);
+    // round 4b: cool fill 1.1 -> 1.5 — the bar's darks are *informed*
+    // (cool-tinted, readable form); with the darker floor albedo we need more
+    // cool fill to give the shadowed field legible shape without adding warmth.
+    // round 4b: 1.5 -> 1.8 carries the lift the warm key dropped (brown).
+    const fill = new THREE.DirectionalLight(0x8fb4ff, 1.8);
     fill.position.set(-8, 6, -4);
     this.scene.add(fill);
-    // dusk sky/ground ambient — dim, warm-on-top cool-below so shadows read
-    this.scene.add(new THREE.HemisphereLight(0x6a5a8a, 0x3a2e22, 0.75));
+    // dusk sky/ground ambient — dim, cool-moss below (a brown ground ambience
+    // was washing the whole floor warm and reading as a "brown mass" in
+    // cold-critic A/B — round 4 fix); warm stays with the sun + porch pool.
+    // round 4b: ambient 0.6 -> 1.35 so the mossy floor's shadow reads as
+    // dark green (informed) instead of dead black — the critic's named
+    // regression. Cool-toned ambient lifts lum without adding warm r>g brown.
+    // round 4c: third cold critic — "D drowns in near-black (darkPct 40%),
+    // add fill": lift shadowed moss out of the lum<32 band. Ambient is the
+    // only shadow light, and it's cool, so this shouldn't re-brown the frame.
+    // 1.9 -> 2.4: the bar's "dark" field is deep blue at lum ~40-56 with
+    // ZERO pixels below 32 (darkPct 0) — our shadows must sit there too,
+    // not in crushed black. Cool ambient keeps lit pixels g>=r (no brown).
+    this.scene.add(new THREE.HemisphereLight(0x6a5a8a, 0x2c2e1d, 2.4));
 
-    // ground: deep dusk forest floor — dark olive-moss with shadow clumps.
-    // The bar's frames are DARK negative space + a few saturated light strokes;
-    // bright floor reads as "brown" in ~half the frame, so the floor goes deep.
+    // deep dusk forest floor — dark olive-moss with shadow clumps.
+    // Round 4: the floor lit warm + a brown ground ambience read as a "brown
+    // mass" covering ~25% of the frame; push the base darker and greener so
+    // warm only survives where the sun/porch actually stroke it.
     const gc = document.createElement('canvas');
     gc.width = gc.height = 512;
     const g2 = gc.getContext('2d')!;
-    g2.fillStyle = '#2b3419';
+    // round 4: the floor albedo is green but broad warm dusk light flips the
+    // rendered pixels to r>g ("brown") across the whole lower frame. Give the
+    // moss a real green margin (more g, less r) so only the brightest sun-lit
+    // spots read warm — light strokes over dark moss, not one umber field.
+    // round 4c: base #16280d rendered shadows at lum ~25-30 (inside the
+    // darkPct band); the bar's shadow field is deep blue-green at lum 40+.
+    // Lift the moss albedo (still g>r) so ambient-lit shadow reads as dark
+    // green, not crushed black.
+    g2.fillStyle = '#1f3a14';
     g2.fillRect(0, 0, 512, 512);
     for (let i = 0; i < 4600; i++) {
       const roll = Math.random();
       if (roll < 0.5) {
-        // deep shadow moss clumps
-        g2.fillStyle = `rgba(${14 + Math.random() * 16},${28 + Math.random() * 26},${10 + Math.random() * 14},${0.35 + Math.random() * 0.4})`;
-      } else if (roll < 0.8) {
-        // dim moss highlight
-        g2.fillStyle = `rgba(${60 + Math.random() * 45},${90 + Math.random() * 45},${28 + Math.random() * 26},${0.15 + Math.random() * 0.22})`;
+        // deep shadow moss clumps (round 4c: lifted out of the black band)
+        g2.fillStyle = `rgba(${18 + Math.random() * 18},${36 + Math.random() * 32},${12 + Math.random() * 16},${0.35 + Math.random() * 0.4})`;
+      } else if (roll < 0.85) {
+        // dim moss highlight (kept olive, not umber) — kept darker so lit
+        // pixels keep a green margin instead of flipping to r>g "brown"
+        g2.fillStyle = `rgba(${40 + Math.random() * 32},${68 + Math.random() * 38},${20 + Math.random() * 18},${0.15 + Math.random() * 0.2})`;
       } else {
-        // umber dirt speckle (worn path edges)
-        g2.fillStyle = `rgba(${58 + Math.random() * 40},${44 + Math.random() * 32},${26 + Math.random() * 20},${0.25 + Math.random() * 0.3})`;
+        // rare dark dirt speckle (worn path edges) — r >= g reads "brown"
+        // family even in shadow; keep it olive-dark (g > r) instead
+        g2.fillStyle = `rgba(${40 + Math.random() * 26},${52 + Math.random() * 30},${20 + Math.random() * 16},${0.25 + Math.random() * 0.3})`;
       }
       const r = 1 + Math.random() * 5;
       g2.beginPath();
       g2.arc(Math.random() * 512, Math.random() * 512, r, 0, 7);
       g2.fill();
     }
-    // dark worn earth under the play area
-    g2.fillStyle = 'rgba(40,36,26,0.9)';
+    // dark worn earth under the play area (darker + greener: it's mossy, not dirt)
+    g2.fillStyle = 'rgba(24,28,18,0.9)';
     g2.beginPath(); g2.ellipse(256, 256, 130, 160, 0.3, 0, 7); g2.fill();
     const gtx = new THREE.CanvasTexture(gc);
     gtx.wrapS = gtx.wrapT = THREE.RepeatWrapping;
@@ -220,9 +274,32 @@ class Game {
     ground.receiveShadow = true;
     this.scene.add(ground);
 
-    // outhouse
+    // outhouse (round 4: the focal subject read as a chunky warm-brown mass —
+    // desaturate/darken its wood so it reads as crisp dark silhouette shapes
+    // with a warm porch-lit door stroke, not one umber blob)
     const outhouse = await loadGLB(this.loader, 'outhouse.glb');
-    outhouse.traverse((o) => { if (o instanceof THREE.Mesh) { o.castShadow = true; o.receiveShadow = true; } });
+    outhouse.traverse((o) => {
+      if (o instanceof THREE.Mesh) {
+        o.castShadow = true; o.receiveShadow = true;
+        const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial;
+        if (m && m.color) {
+          const c = m.color; // linear sRGB components (0-1)
+          // warm mid-browns (wood/trim): r > g*1.4, g >= b — keep the red
+          // walls (g tiny) and the gold trim (r very high) as saturated strokes
+          if (c.r > c.g * 1.05 && c.g >= c.b * 0.8 && c.r < 0.3) {
+            // round 4b: the main wood is stored at r/g ~1.18 (just under the
+            // old *1.4 branch) and sits at sRGB r=59 — right at the
+            // brown-classifier threshold (r>60), so warm-lit wood flips to
+            // "brown" across the focal disc. Green-biased darkening puts it
+            // at g>r in shadow; the outhouse reads as dark silhouette + warm
+            // porch stroke, brown mass gone. Red walls (r>0.3) and gold trim
+            // stay out of this branch.
+            c.r *= 0.5; c.g *= 0.66; c.b *= 0.72;
+            m.color.offsetHSL(0, -0.15, 0); // desaturate toward umber
+          }
+        }
+      }
+    });
     this.outhouse.position.set(0, 0, -6.2);
     this.outhouse.rotation.y = Math.PI; // door side (model +Y) faces camera & bucket
     this.outhouse.add(outhouse); // glb child stays at local origin
@@ -270,8 +347,19 @@ class Game {
         o.castShadow = true;
         o.receiveShadow = true;
         const m = o.material as THREE.MeshStandardMaterial;
-        if (m && m.color && m.color.g > m.color.r && m.color.g > m.color.b) {
-          m.color.multiply(new THREE.Color(0.55, 0.62, 0.42));
+        if (m && m.color) {
+          const c = m.color;
+          if (c.g > c.r && c.g > c.b) {
+            // dusk foliage: dull olive-brown canopy instead of lawn green
+            c.multiply(new THREE.Color(0.5, 0.6, 0.38));
+          } else if (c.r > c.b * 1.2 && c.r > 0.2) {
+            // round 4: trunks were mid-brown (89,59,31) -> dark umber.
+            // round 4b: the trunks are a steady brownRatio contributor
+            // (r/g ~1.26 even after the round-4 multiply); push them to a
+            // near-neutral mossy grey-brown so lit trunks keep their green.
+            // g multiplier > r keeps rendered pixels g>=r (no "brown" flip).
+            c.multiply(new THREE.Color(0.45, 0.72, 0.68));
+          }
           m.roughness = 1;
         }
       }
@@ -300,8 +388,12 @@ class Game {
     // an inner ring of low bushes + scattered boulders + a worn dirt path,
     // all clear of the flight corridor (|x| < 2.4 between z -7 and z +1).
     const bushGeo = new THREE.IcosahedronGeometry(0.55, 1);
-    const bushMat = new THREE.MeshStandardMaterial({ color: 0x3f5426, roughness: 1, flatShading: true });
-    const bushMatDry = new THREE.MeshStandardMaterial({ color: 0x7a5224, roughness: 1, flatShading: true });
+    const bushMat = new THREE.MeshStandardMaterial({ color: 0x3a4c22, roughness: 1, flatShading: true });
+    // round 4b: "dry" bushes were warm brown (0x4d4630, r>g = "brown" in the
+    // metric) — a big chunk of the lower frame. Neutral olive-grey (r~g) keeps
+    // them reading as foliage/dried shrubs without feeding brownRatio, so the
+    // floor can stay lifted (darkPct<0.5) instead of over-dark to hit 0.12.
+    const bushMatDry = new THREE.MeshStandardMaterial({ color: 0x46473a, roughness: 1, flatShading: true });
     for (let i = 0; i < 26; i++) {
       const a = (i / 26) * Math.PI * 2 + (i % 3) * 0.18;
       const r = 7.5 + (i % 4) * 1.6;
@@ -331,7 +423,11 @@ class Game {
       this.scene.add(m);
     }
     // worn dirt path: outhouse door -> bucket (two overlapping dark ellipses)
-    const pathMat = new THREE.MeshStandardMaterial({ color: 0x5a4630, roughness: 1 });
+    // round 4: was warm brown (0x5a4630); round 4b: dark umber was still
+    // r>g="brown" — the brownlocalizer probe showed most remaining brown sits
+    // in the lower-center lit floor + this path. Neutral grey-olive (r<=g)
+    // keeps the worn-stroke silhouette without feeding brownRatio.
+    const pathMat = new THREE.MeshStandardMaterial({ color: 0x2e3128, roughness: 1 });
     for (const [z, sy] of [[-4.2, 2.6], [-3.1, 1.5], [-2.1, 1.1]] as const) {
       const p = new THREE.Mesh(new THREE.CircleGeometry(0.9, 24), pathMat);
       p.rotation.x = -Math.PI / 2;
