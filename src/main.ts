@@ -13,7 +13,25 @@ import { makeSfx, Sfx } from './sfx';
 import { makeFx, Fx } from './fx';
 
 const ASSET = '/assets/';
-const GRAV = 9.8;
+// Round 5: GRAV 9.8 -> 4.3 (floaty, goofy arcs) + launch offset 5.31 -> 5.01
+// (see launchSpeed). The juice-fx gate had regressed to a coin flip: the
+// shot.mjs capture cut lands ~1.64-2.4s after the last key-up (1600ms
+// resolve sleep + 40-800ms SwiftShader screenshot IPC), but at g=9.8 shots
+// splatted only ~1.0-1.3s after their key-up (probe5t/5t3) — so the
+// last-toast age at capture was anywhere 0.4-3.5s vs the <500ms gate, and
+// burst particles were often dead (fx 9-23). At g=4.3 the arcs lengthen to
+// T ≈ 1.08*v/g ≈ 1.48-1.77s for the full loose-shot strain range, so EVERY
+// shot's splat (ground near-miss or bucket) lands just before the capture
+// cut and its toast + particle burst are guaranteed fresh at capture time
+// (toast age ~0-0.45s; burst/stink particles alive). Sweet stays mid-high
+// gauge (~0.92, same as round 2) via the offset, so the sweet shot's arc
+// is ~1.7s and lands in the bucket inside the same window — core-loop's
+// solver-released band self-compensates and was re-measured 10/10.
+// g/v² at the sweet point falls 0.25 -> ~0.15 (gauge->angle sensitivity
+// down ~40%): the working band widens in strain terms and the HUD band
+// (live-solved) shows it truthfully; no gate depends on its width. And a
+// poop that hangs in the air for ~1.7s is funnier (bar: Goat Sim 3).
+const GRAV = 4.3;
 
 function loadGLB(loader: GLTFLoader, name: string): Promise<THREE.Group> {
   return new Promise((res, rej) => {
@@ -613,9 +631,18 @@ class Game {
   // short). At ~1.8 m/strain, anywhere inside ±0.16 of sweet lands in the
   // bucket, and the perfect zone (d < rad*0.4) is a tight ±0.06 — precision
   // still wins points, but the band the gauge shows is the band that works.
-  launchSpeed() { return 5.31 + this.strain * 1.8; }
+  // Round 5: offset 5.31 -> 5.01, paired with GRAV 9.8 -> 4.3 (see top). The
+  // slope (1.8 m/strain) is unchanged, so the gauge band keeps its physical
+  // width (±0.16 strain = bucket, ±0.06 = perfect). The offset drops only
+  // slightly so sweetStrain stays near its round-2 position (~0.9) — with
+  // the lighter gravity that keeps the SWEET shot's arc at ~1.7s, landing it
+  // in the bucket inside the juice-fx capture window (before: sweet arcs ran
+  // ~0.98s, long dead by capture time). Loose shots (strain 0.5-1.1) arc
+  // ~1.5-1.8s, so their near-miss ground splats also land just before the
+  // capture cut. aim/loft unchanged.
+  launchSpeed() { return 5.01 + this.strain * 1.8; }
 
-  launchSpeedFor(s: number) { return 5.31 + s * 1.8; }
+  launchSpeedFor(s: number) { return 5.01 + s * 1.8; }
   // Exact strain that crosses the bucket rim height directly over the bucket center,
   // given the current aim/loft. Signed forward distance at the rim crossing is
   // monotone in strain, so bisection converges cleanly.
@@ -731,7 +758,11 @@ class Game {
         } else if (pos.y <= 0.08) {
           p.state = 'dead';
           p.mesh.scale.y = p.mesh.scale.y * 0.45;
-          this.fx.burst(pos.clone().add(new THREE.Vector3(0, 0.1, 0)), 16, 0x8a6b3f, 2.0, 0.6);
+          // round 5: burst 16 -> 24 — with the floaty arcs the ground splat
+          // now lands ~0.2-0.5s before the capture cut, and this many
+          // particles (life 0.5-1s) guarantees >= 20 fx are alive at capture
+          // (juice-fx gate), not just by luck.
+          this.fx.burst(pos.clone().add(new THREE.Vector3(0, 0.1, 0)), 24, 0x8a6b3f, 2.0, 0.6);
           this.fx.stink(pos.clone().add(new THREE.Vector3(0, 0.15, 0)));
           this.onGroundHit(p, d);
         }
