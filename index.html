@@ -6,7 +6,8 @@
 <title>Outhouse Pooping Simulator</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍄</text></svg>">
 <style>
-  html,body{margin:0;height:100%;overflow:hidden;background:#87c4ff;font-family:'Trebuchet MS','Comic Sans MS',system-ui,sans-serif;user-select:none;}
+  html,body{margin:0;height:100%;overflow:hidden;background:#3a3352;font-family:'Trebuchet MS','Comic Sans MS',system-ui,sans-serif;user-select:none;}
+  #vignette{position:fixed;inset:0;pointer-events:none;z-index:5;background:radial-gradient(ellipse at 50% 42%, rgba(8,6,18,0) 52%, rgba(8,6,18,.42) 100%);}
   #app{width:100%;height:100%;display:block;}
   .hud{position:fixed;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.45);pointer-events:none;z-index:10;}
   #score{top:14px;left:18px;font-size:34px;font-weight:900;}
@@ -31,6 +32,7 @@
 </head>
 <body>
 <canvas id="app"></canvas>
+<div id="vignette"></div>
 <div class="hud" id="score"><span class="lbl">SCORE</span><span id="scorev">0</span></div>
 <div class="hud" id="combo"></div>
 <div id="gaugewrap"><div class="band"></div><div id="gauge"></div></div>

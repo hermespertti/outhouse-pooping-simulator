@@ -1,10 +1,10 @@
 {
-  "rounds": 2,
+  "rounds": 3,
   "bar": "Match the visual craft of bruno-simon.com's live Three.js scene (lighting, materials, composition — progress/bar/bruno-simon.png) AND the absurd-comedy feel of Goat Simulator 3 (progress/bar/goatsim1.jpg), judged by a cold critic via blind A/B plus the numeric gates below.",
   "pieces": [
     {
       "name": "core-loop",
-      "round": 2,
+      "round": 3,
       "verdict": "win",
       "gate": "sweet-shot bucket hit rate >= 90% over 10 launches; sweetStrain solver converges (|signed distance at rim| < 0.1m)",
       "metrics": { "hits": "10/10", "perfects": 10, "comboMax": 10, "score": 13250, "sweetStrain": 0.5006 },
@@ -12,15 +12,15 @@
     },
     {
       "name": "scene-visuals",
-      "round": 2,
-      "verdict": "gap",
+      "round": 3,
+      "verdict": "win",
       "gate": "cold-critic blind A/B vs bar images: craft score >= 7/10",
-      "metrics": { "criticScore": 4, "abMethod": "pixel-measured (vision critic timed out)" },
-      "gap": "Bright washed-out open field vs the bar's dense dark diorama: meanLum 180 vs 56, structureRatio 15.8% vs 99%, sky 22.7% + flat ground 61.5%; frame needs packed saturated structure / a darker graded palette"
+      "metrics": { "criticScore": 7, "structureRatio": 0.943, "meanLum": 44.9, "meanSat": 62.7, "skyRatio": 0.002, "darkPct": 0.437, "centerRingContrast": 2.51, "abMethod": "fresh-context cold critic, analyze.mjs pixel metrics + ASCII maps" },
+      "gap": ""
     },
     {
       "name": "hud-legibility",
-      "round": 2,
+      "round": 3,
       "verdict": "win",
       "gate": "0 clipped HUD elements in capture; score/combo/gauge/equip all fully in-frame",
       "metrics": { "clippedLabels": 0 },
@@ -36,10 +36,10 @@
     },
     {
       "name": "performance",
-      "round": 2,
+      "round": 3,
       "verdict": "win",
       "gate": "mean frameMs <= 16.7 over 30 frames",
-      "metrics": { "frameMs": 1.21, "framesSampled": 40, "rafFps": 9 },
+      "metrics": { "frameMs": 1.26, "framesSampled": 40, "rafFps": 8 },
       "gap": ""
     }
   ],
@@ -57,6 +57,13 @@
       "verdict": "win",
       "metrics": { "hits": ["0/10", "10/10"], "perfects": [0, 10], "sweetStrain": [0.301, 0.5006], "clippedLabels": [3, 0], "frameMs": [0.7, 1.21] },
       "note": "Closed the regressed core-loop win: uncommitted bloom/lighting work dropped SwiftShader to ~9fps; the 50ms dt cap ran the whole sim (incl. the strain gauge) in slow-motion and key-up released from the last physics step up to a full frame late, so real-time releases hit strain 0.17-0.44 vs sweet 0.30 and landed ~1.3m short (0/10). Fixed with a 120Hz fixed-timestep accumulator, strain computed from the DOM key-event timestamp (frame-rate independent, HUD and physics now agree exactly), a flatter launch curve 3.5+9s -> 5.31+1.8s so the HUD's +-0.11 sweet band is the band that actually lands (perfect zone still tight at +-0.06), and quarter-res bloom. Sweet 10/10 all PERFECT (score 13250), hud-legibility also cleared 3 -> 0 clips, performance gate held (1.21ms). scene-visuals re-scored 4/10 by a pixel-measured cold critic (vision critic timed out); its named gap is now the next target: bright washed-out field vs the bar's dense dark diorama (meanLum 180 vs 56, structureRatio 16% vs 99%)."
+    },
+    {
+      "round": 3,
+      "piece": "scene-visuals",
+      "verdict": "win",
+      "metrics": { "criticScore": [4, 7], "structureRatio": [0.156, 0.943], "meanLum": [181, 44.9], "meanSat": [43, 62.7], "skyRatio": [0.228, 0.002] },
+      "note": "Closed the scene-visuals gap with a dusk-diorama rework: dark indigo->amber sky dome, low warm sun (long shadows) + cool fill + dim hemisphere, dense dusk fog (20-42m), dark olive-moss forest floor with shadow clumps, tree ring pulled in and enlarged + retinted olive-brown, inner shrub/boulder rings clearing the flight corridor, worn dirt path, dusk clouds + low moon, a warm porch PointLight focal glow on the outhouse door, ACES exposure 1.08->0.65, bloom 0.3->0.55, a teal-shadow/warm-highlight saturation+color-grade ShaderPass, and a dolly-in camera framing the outhouse as the focal subject. Cold-critic blind A/B (fresh context, analyze.mjs pixel evidence): 4/10 -> 7/10 (gate >=7), and the final critic ruled the GAME frame more polished than the bar on the decisive trait — warm-lit focal subject isolated in true-black negative space (darkPct 0.437 vs bar 0.0, center/ring contrast 2.51 vs 1.76; meanLum 44.9 vs 55.8, meanSat 62.7 vs 64). All win pieces re-measured, no regressions: core-loop sweet 10/10 + 10 perfects, hud-legibility 0 clips, performance mean 1.26ms/frame. Harness untouched. Next gap named by the final critic: focal subject reads as a chunky mass — brownRatio 0.26; falsifiable close: brownRatio < 0.12 while darkPct > 0.40 and center/ring stays > 2.5."
     }
   ]
 }

@@ -26,7 +26,7 @@
 <body>
 <h1>🚽 Outhouse Pooping Simulator — gauntlet loop</h1>
 <p class="bar"><strong>Bar:</strong> Match the visual craft of bruno-simon.com's live Three.js scene (lighting, materials, composition — progress/bar/bruno-simon.png) AND the absurd-comedy feel of Goat Simulator 3 (progress/bar/goatsim1.jpg), judged by a cold critic via blind A/B plus the numeric gates below.</p>
-<p class="stat">Round <b>2</b> · pieces <b>3/5</b> won</p>
+<p class="stat">Round <b>3</b> · pieces <b>4/5</b> won</p>
 
 <h2>Quality bar (references)</h2>
 <div class="barmeds"><img loading="lazy" src="bar/bruno-simon.png" alt="bar: bruno-simon.png"/>
@@ -42,9 +42,9 @@
     </tr>
     <tr>
       <td><strong>scene-visuals</strong></td>
-      <td><span class="badge gap">gap</span></td>
+      <td><span class="badge win">win</span></td>
       <td class="gate">cold-critic blind A/B vs bar images: craft score &gt;= 7/10</td>
-      <td class="gap">Bright washed-out open field vs the bar's dense dark diorama: meanLum 180 vs 56, structureRatio 15.8% vs 99%, sky 22.7% + flat ground 61.5%; frame needs packed saturated structure / a darker graded palette</td>
+      <td class="gap">—</td>
     </tr>
     <tr>
       <td><strong>hud-legibility</strong></td>
@@ -68,6 +68,14 @@
 <h2>Round history</h2>
 <table><tr><th>round</th><th>piece</th><th>verdict</th><th>before</th><th>after</th><th>note</th></tr>
     <tr>
+      <td class="num">3</td>
+      <td>scene-visuals</td>
+      <td><span class="badge win">win</span></td>
+      <td class="num">—</td>
+      <td class="num">—</td>
+      <td class="gap">Closed the scene-visuals gap with a dusk-diorama rework: dark indigo-&gt;amber sky dome, low warm sun (long shadows) + cool fill + dim hemisphere, dense dusk fog (20-42m), dark olive-moss forest floor with shadow clumps, tree ring pulled in and enlarged + retinted olive-brown, inner shrub/boulder rings clearing the flight corridor, worn dirt path, dusk clouds + low moon, a warm porch PointLight focal glow on the outhouse door, ACES exposure 1.08-&gt;0.65, bloom 0.3-&gt;0.55, a teal-shadow/warm-highlight saturation+color-grade ShaderPass, and a dolly-in camera framing the outhouse as the focal subject. Cold-critic blind A/B (fresh context, analyze.mjs pixel evidence): 4/10 -&gt; 7/10 (gate &gt;=7), and the final critic ruled the GAME frame more polished than the bar on the decisive trait — warm-lit focal subject isolated in true-black negative space (darkPct 0.437 vs bar 0.0, center/ring contrast 2.51 vs 1.76; meanLum 44.9 vs 55.8, meanSat 62.7 vs 64). All win pieces re-measured, no regressions: core-loop sweet 10/10 + 10 perfects, hud-legibility 0 clips, performance mean 1.26ms/frame. Harness untouched. Next gap named by the final critic: focal subject reads as a chunky mass — brownRatio 0.26; falsifiable close: brownRatio &lt; 0.12 while darkPct &gt; 0.40 and center/ring stays &gt; 2.5.</td>
+    </tr>
+    <tr>
       <td class="num">2</td>
       <td>core-loop</td>
       <td><span class="badge win">win</span></td>
@@ -86,5 +94,6 @@
 
 <h2>Round artifacts</h2>
 <div class="shots"><a href="artifacts/round1.png"><img loading="lazy" src="artifacts/round1.png" alt="round1.png"/></a>
-<a href="artifacts/round2.png"><img loading="lazy" src="artifacts/round2.png" alt="round2.png"/></a></div>
+<a href="artifacts/round2.png"><img loading="lazy" src="artifacts/round2.png" alt="round2.png"/></a>
+<a href="artifacts/round3.png"><img loading="lazy" src="artifacts/round3.png" alt="round3.png"/></a></div>
 </body></html>
